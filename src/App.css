@@ -16,3 +16,9 @@
   left: 0;
   z-index: 9;
 }
+
+.pose {
+  width: 200px;
+  height: 200px;
+  position: absolute;
+}

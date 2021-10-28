@@ -1,12 +1,17 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import Webcam from "react-webcam";
 import * as tf from "@tensorflow/tfjs";
 import * as handpose from "@tensorflow-models/handpose";
+import * as fp from "fingerpose";
 import "./App.css";
+import pepcoding from "./logo.png";
+import rikrak from "./rikrak.jpg";
 
 function App() {
   const webcamRef = useRef(null);
-  const canvasRef = useRef(null);
+
+  const [pose, setPose] = useState(null);
+  const poseImage = { thumbs_up: pepcoding, victory: rikrak };
 
   async function getHandpose() {
     // load the pre defined handpose model by tensorflow.js
@@ -15,8 +20,9 @@ function App() {
 
     setInterval(() => {
       getData(model);
-    }, 1);
+    }, 100);
   }
+
   getHandpose();
 
   async function getData(model) {
@@ -31,43 +37,28 @@ function App() {
       const hand = await model.estimateHands(video);
       // console.log(hand);
 
-      const context = canvasRef.current.getContext("2d");
-
       if (hand.length > 0) {
-        // console.log(hand)
-        hand.forEach((prediction) => {
-          const landmarks = prediction.annotations;
+        const GE = new fp.GestureEstimator([
+          fp.Gestures.VictoryGesture,
+          fp.Gestures.ThumbsUpGesture,
+        ]);
 
-          if (
-            landmarks !== "undefined" &&
-            landmarks !== null &&
-            landmarks["indexFinger"] != null
-          ) {
-            const indexFinger = landmarks["indexFinger"];
-            // console.log(indexFinger[0][1]);
-            // context.beginPath();
-            context.arc(
-              indexFinger[3][0],
-              indexFinger[3][1],
-              0,
-              0,
-              3 * Math.PI
-            );
-            context.fillStyle = "black";
-            context.stroke();
-            // context.stroke();
-            // context.closePath();
-          }
-        });
+        const estimatedGestures = await GE.estimate(hand[0].landmarks, 7.5);
+        if (
+          estimatedGestures.gestures !== undefined &&
+          estimatedGestures.gestures.length > 0 &&
+          estimatedGestures.gestures[0] !== undefined
+        ) {
+          setPose(estimatedGestures.gestures[0].name);
+        }
       }
-    } else {
     }
   }
 
   return (
     <div className="App">
       <Webcam ref={webcamRef} className="window"></Webcam>
-      <canvas ref={canvasRef} className="window"></canvas>
+      {pose !== null && poseImage[pose] !== undefined ? <img src={poseImage[pose]} className="pose" alt="pose"></img> : ""}
     </div>
   );
 }
